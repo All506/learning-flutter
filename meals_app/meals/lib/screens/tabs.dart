@@ -1,42 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:meals/models/data/dummy_data.dart';
-import 'package:meals/models/meal.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meals/providers/favorites_provider.dart';
+import 'package:meals/providers/filters_provider.dart';
 import 'package:meals/screens/categories.dart';
 import 'package:meals/screens/filters.dart';
 import 'package:meals/screens/meals.dart';
 import 'package:meals/widgets/main_drawer.dart';
+import 'package:meals/providers/meals_provider.dart';
 
-const kInitialFilters = {
-  Filter.glutenFree: false,
-  Filter.lactosefree: false,
-  Filter.vegan: false,
-  Filter.vegetarian: false,
-};
-
-class TabScreen extends StatefulWidget {
+class TabScreen extends ConsumerStatefulWidget {
   const TabScreen({super.key});
 
   @override
-  State<TabScreen> createState() {
+  ConsumerState<TabScreen> createState() {
     return _TabScreenState();
   }
 }
 
-class _TabScreenState extends State<TabScreen> {
+class _TabScreenState extends ConsumerState<TabScreen> {
   // Will handle which page is shown
   int _selectedPageIndex = 0;
-  final List<Meal> _favoriteMeals = [];
-  Map<Filter, bool> _selectedFilters = kInitialFilters;
-
-  void _showInfoMessage(String message) {
-    // As it is a stateful widget context is available globaly
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
-  }
 
   void _selectPage(int index) {
     setState(() {
@@ -49,23 +32,17 @@ class _TabScreenState extends State<TabScreen> {
     if (identifier == 'filters') {
       // Will be result once user goes back and convert dynamic object to map
       // await so will take value as we close the screen or go back
-      final result = await Navigator.of(context).push<Map<Filter, bool>>(
+      await Navigator.of(context).push<Map<Filter, bool>>(
         MaterialPageRoute(
-          builder: (ctx) => FiltersScreen(
-            currentFilters: _selectedFilters,
-          ),
+          builder: (ctx) => const FiltersScreen(),
         ),
       );
-
-      setState(() {
-        // ?? condition in case it is null
-        _selectedFilters = result ?? kInitialFilters;
-      });
     }
   }
 
   // Will receive a meal and delete it or add it
-  void _toggleMealFavoriteStatus(Meal meal) {
+  // Comented as the state will be managed by riverpod
+  /*void _toggleMealFavoriteStatus(Meal meal) {
     final isExisting = _favoriteMeals.contains(meal);
 
     if (isExisting) {
@@ -79,38 +56,40 @@ class _TabScreenState extends State<TabScreen> {
       });
       _showInfoMessage('Marked as a favorite.');
     }
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
-    final availableMeals = dummyMeals.where((meal) {
+    // To use the provider. Use watch as possible, even if you read once.
+    final meals = ref.watch(mealsProvider);
+    final activeFilters = ref.watch(filtersProvider);
+    final availableMeals = meals.where((meal) {
       // Has a class selected and is not satisfied, is exluded∫
-      if (_selectedFilters[Filter.glutenFree]! && !meal.isGlutenFree) {
+      if (activeFilters[Filter.glutenFree]! && !meal.isGlutenFree) {
         return false;
       }
-      if (_selectedFilters[Filter.lactosefree]! && !meal.isLactoseFree) {
+      if (activeFilters[Filter.lactosefree]! && !meal.isLactoseFree) {
         return false;
       }
-      if (_selectedFilters[Filter.vegetarian]! && !meal.isVegetarian) {
+      if (activeFilters[Filter.vegetarian]! && !meal.isVegetarian) {
         return false;
       }
-      if (_selectedFilters[Filter.vegan]! && !meal.isVegan) {
+      if (activeFilters[Filter.vegan]! && !meal.isVegan) {
         return false;
       }
       return true;
     }).toList();
 
     Widget activePage = CategoriesScreen(
-      onToggleFavorite: _toggleMealFavoriteStatus,
       availableMeals: availableMeals,
     );
     var activePageTitle = 'Categories';
 
     if (_selectedPageIndex == 1) {
+      final favoriteMeals = ref.watch(favoriteMealsProvider);
       // without title scaffold inside meals wont be displayed
       activePage = MealsScreen(
-        meals: _favoriteMeals,
-        onToggleFavorite: _toggleMealFavoriteStatus,
+        meals: favoriteMeals,
       );
       activePageTitle = 'Your Favorites';
     }
