@@ -40,13 +40,17 @@ class MealItem extends StatelessWidget {
         child: Stack(
           children: [
             // An image will fade in as it loads
-            FadeInImage(
-              placeholder: MemoryImage(kTransparentImage),
-              image: NetworkImage(meal.imageUrl),
-              // Image will be cut if doesnt fit
-              fit: BoxFit.cover,
-              height: 200,
-              width: double.infinity,
+            // Hero is a widget that exist to animate a widget across diferent screens
+            Hero(
+              tag: meal.id,
+              child: FadeInImage(
+                placeholder: MemoryImage(kTransparentImage),
+                image: NetworkImage(meal.imageUrl),
+                // Image will be cut if doesnt fit
+                fit: BoxFit.cover,
+                height: 200,
+                width: double.infinity,
+              ),
             ),
             Positioned(
               bottom: 0,
